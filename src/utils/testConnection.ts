@@ -1,7 +1,7 @@
 // Simple utility to test backend connection
 export const testBackendConnection = async () => {
   try {
-    const response = await fetch('http://localhost:5000/api/auth/verify', {
+    const response = await fetch('https://zeroday-backend.onrender.com/api/auth/verify', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ export const testBackendConnection = async () => {
 // Test MongoDB connection through backend
 export const testDatabaseConnection = async () => {
   try {
-    const response = await fetch('http://localhost:5000/api/announcements', {
+    const response = await fetch('https://zeroday-backend.onrender.com/api/announcements', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
