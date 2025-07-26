@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://zeroday-backend.onrender.com',
+        target: 'https://campues-connect-backend.onrender.com',
         changeOrigin: true,
         secure: true,
       },

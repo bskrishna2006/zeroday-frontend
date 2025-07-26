@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Separator } from '@/components/ui/separator';
+import { AuthDebugger } from '@/components/AuthDebugger';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -44,6 +45,17 @@ export default function Login() {
       }
     }
   };
+
+  // Add debug mode check
+  const isDebugMode = window.location.search.includes('debug=true');
+
+  if (isDebugMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <AuthDebugger />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row overflow-hidden font-['Inter',sans-serif]">

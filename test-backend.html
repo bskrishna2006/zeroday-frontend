@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend URL Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .testing { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>Backend URL Tester</h1>
+    <button onclick="testAllUrls()">Test All Possible URLs</button>
+    <div id="results"></div>
+
+    <script>
+        async function testAllUrls() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="testing">Testing backend URLs...</div>';
+            
+            const possibleUrls = [
+                'https://campues-connect-backend.onrender.com',
+                'https://campues-connect-backend.onrender.com/api',
+                'https://campues-connect-backend.onrender.com/api/health',
+                'https://campues-connect-backend.onrender.com/api/status',
+                'https://campues-connect-backend.onrender.com/api/auth/verify',
+                'https://campues-connect-backend.onrender.com/health',
+                'https://campues-connect-backend.onrender.com/status'
+            ];
+            
+            results.innerHTML = '';
+            
+            for (const url of possibleUrls) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result testing';
+                resultDiv.innerHTML = `Testing: ${url}...`;
+                results.appendChild(resultDiv);
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (response.status === 404) {
+                        resultDiv.className = 'result error';
+                        resultDiv.innerHTML = `❌ ${url} - 404 Not Found`;
+                    } else if (response.status === 401) {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = `✅ ${url} - 401 Unauthorized (API Working!)`;
+                    } else {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = `✅ ${url} - Status: ${response.status}`;
+                    }
+                } catch (error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ ${url} - Error: ${error.message}`;
+                }
+                
+                // Wait a bit between requests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+    </script>
+</body>
+</html>

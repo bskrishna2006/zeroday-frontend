@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h1>Authentication Debug</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testSignup()">Test Signup</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://campues-connect-backend.onrender.com/api';
+        
+        async function testLogin() {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@test.com',
+                        password: 'testpass'
+                    })
+                });
+                
+                const data = await response.text();
+                results.innerHTML = `
+                    <h3>Login Response:</h3>
+                    <p>Status: ${response.status}</p>
+                    <p>Response: ${data}</p>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <h3>Login Error:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testSignup() {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Testing signup...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('email', 'test@test.com');
+                formData.append('password', 'testpass123');
+                formData.append('name', 'Test User');
+                formData.append('role', 'student');
+                
+                const response = await fetch(`${API_BASE}/auth/signup`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.text();
+                results.innerHTML = `
+                    <h3>Signup Response:</h3>
+                    <p>Status: ${response.status}</p>
+                    <p>Response: ${data}</p>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <h3>Signup Error:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

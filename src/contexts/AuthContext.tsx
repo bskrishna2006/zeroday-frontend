@@ -72,8 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('🔐 Attempting login for:', email);
+      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api');
+      
       const response = await authAPI.login(email, password);
+      console.log('✅ Login response received:', response.status);
+      
       const { token, user: userData, verificationStatus } = response.data;
+      console.log('📝 User data received:', { email: userData.email, role: userData.role, verificationStatus });
       
       // Check if user has verification status issues
       if (verificationStatus === 'pending') {
@@ -95,7 +101,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setAuthData(token, user);
       setUser(user);
+      console.log('🎉 Login successful');
     } catch (error: any) {
+      console.error('❌ Login error:', error);
+      console.error('📊 Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
       const message = error.response?.data?.message || error.message || 'Login failed';
       throw new Error(message);
     } finally {
@@ -106,6 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string, role: 'student' | 'admin', idCard?: File | null) => {
     setLoading(true);
     try {
+      console.log('📝 Attempting signup for:', email, 'as', role);
+      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api');
+      
       // Use FormData for multipart/form-data when uploading files
       const formData = new FormData();
       formData.append('email', email);
@@ -115,18 +133,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Add ID card file if provided (required for students)
       if (idCard) {
-        console.log('Appending ID card to form data:', idCard.name, idCard.type, idCard.size);
+        console.log('📎 Appending ID card to form data:', idCard.name, idCard.type, idCard.size);
         formData.append('idCard', idCard);
       }
       
       // Log form data (for debugging)
-      console.log('Form data entries:');
+      console.log('📋 Form data entries:');
       for (const pair of (formData as any).entries()) {
         console.log(pair[0], pair[0] === 'idCard' ? 'File object present' : pair[1]);
       }
       
       const response = await authAPI.signup(formData);
-      console.log('Signup response:', response.data);
+      console.log('✅ Signup response received:', response.status);
+      console.log('📝 Signup response data:', response.data);
+      
       const { token, user: userData } = response.data;
       
       const user: User = {
@@ -141,11 +161,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // For prototype, all users get immediate access
       setAuthData(token, user);
       setUser(user);
+      console.log('🎉 Signup successful');
       
       // No need to check verification status for prototype
     } catch (error: any) {
-      console.error('Signup error in AuthContext:', error);
-      const message = error.response?.data?.message || 'Signup failed';
+      console.error('❌ Signup error:', error);
+      console.error('📊 Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      const message = error.response?.data?.message || error.message || 'Signup failed';
       throw new Error(message);
     } finally {
       setLoading(false);
