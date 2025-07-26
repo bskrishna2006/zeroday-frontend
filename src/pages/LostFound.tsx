@@ -1,0 +1,666 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Calendar,
+  MapPin,
+  Plus,
+  Search,
+  Upload,
+  ChevronUp,
+  X,
+  Image as ImageIcon,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useLostFoundItems, useCreateLostFoundItem, useUpdateLostFoundItem } from "@/hooks/useLostFound";
+
+interface LostFoundItem {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  type: "lost" | "found";
+  location: string;
+  createdAt: string;
+  reportedBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  reportedByName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  image?: string;
+  status: 'active' | 'resolved' | 'expired';
+  resolvedAt?: string;
+}
+
+const categories = [
+  "Electronics",
+  "Clothing",
+  "Accessories",
+  "Books",
+  "Sports Equipment",
+  "Other",
+];
+
+export default function LostFound() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [items, setItems] = useState<LostFoundItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<LostFoundItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // Form state
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [type, setType] = useState<"lost" | "found">("lost");
+  const [location, setLocation] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Fetch data from API
+  const { data: lostFoundData, isLoading, error, refetch } = useLostFoundItems();
+  const createLostFoundMutation = useCreateLostFoundItem();
+  const updateItemMutation = useUpdateLostFoundItem();
+  
+  // Update items state when data is loaded
+  useEffect(() => {
+    if (lostFoundData?.items) {
+      setItems(lostFoundData.items);
+      setFilteredItems(lostFoundData.items);
+    }
+  }, [lostFoundData]);
+  
+  // Scroll to top functionality
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollButton(window.scrollY > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+  
+  // Handle marking an item as resolved
+  const handleMarkResolved = async (itemId: string) => {
+    try {
+      await updateItemMutation.mutateAsync({
+        id: itemId,
+        data: {
+          status: 'resolved',
+          resolvedAt: new Date().toISOString()
+        }
+      });
+      
+      toast({
+        title: "Success",
+        description: "Item has been marked as resolved.",
+      });
+    } catch (error) {
+      console.error('Error marking item as resolved:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update item status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Image upload functions
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Image size should be less than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Please select a valid image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedImage(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  // Filter items
+  useEffect(() => {
+    let filtered = items;
+
+    if (activeTab !== "all") {
+      filtered = filtered.filter((item) => item.type === activeTab);
+    }
+
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((item) => item.category === selectedCategory);
+    }
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.title.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower) ||
+          item.location.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredItems(filtered);
+  }, [items, searchTerm, selectedCategory, activeTab]);
+
+  const handleSubmitReport = async () => {
+    if (!title || !description || !category || !location) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert image to base64 string for storage
+    let imageData = undefined;
+    if (selectedImage && imagePreview) {
+      imageData = imagePreview;
+    }
+
+    const itemData = {
+      title,
+      description,
+      category,
+      type,
+      location,
+      contactEmail: user?.email || '',
+      contactPhone: contactPhone || null,
+      image: imageData,
+    };
+
+    try {
+      await createLostFoundMutation.mutateAsync(itemData);
+      
+      // Reset all form fields
+      setTitle("");
+      setDescription("");
+      setCategory("");
+      setLocation("");
+      setContactPhone("");
+      setSelectedImage(null);
+      setImagePreview(null);
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: `${
+          type === "lost" ? "Lost" : "Found"
+        } item reported successfully.`,
+      });
+    } catch (error) {
+      console.error('Error submitting item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit your report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="container py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-lg text-muted-foreground">Loading lost & found items...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="container py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-4">
+          <div className="p-4 rounded-full bg-red-50 inline-flex">
+            <X className="h-12 w-12 text-red-500" />
+          </div>
+          <h3 className="text-xl font-semibold">Failed to load items</h3>
+          <p className="text-muted-foreground">There was an error loading the lost & found items.</p>
+          <Button onClick={() => refetch()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-8 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Lost & Found</h1>
+          <p className="text-muted-foreground">
+            Help reunite lost items with their owners
+          </p>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Report Item
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl h-[80vh] flex flex-col overflow-hidden">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle>Report a Lost or Found Item</DialogTitle>
+              <DialogDescription>
+                Help others find their lost items or claim found items.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex-grow overflow-y-auto pr-2">
+              <Tabs defaultValue="lost" onValueChange={(value) => setType(value as "lost" | "found")}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="lost">Lost Item</TabsTrigger>
+                  <TabsTrigger value="found">Found Item</TabsTrigger>
+                </TabsList>
+
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Item Name</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g., iPhone, Backpack, Textbook"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Where was it lost/found?"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Detailed description of the item"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contactEmail">Contact Email</Label>
+                      <Input
+                        id="contactEmail"
+                        type="email"
+                        value={user?.email || ''}
+                        disabled={!!user}
+                        placeholder="Your email address"
+                      />
+                      {user && (
+                        <p className="text-xs text-muted-foreground">Using your account email</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="contactPhone">Contact Phone (Optional)</Label>
+                      <Input
+                        id="contactPhone"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        placeholder="Your phone number"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Image (Optional)</Label>
+                    {imagePreview ? (
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-48 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 rounded-full w-8 h-8 p-0"
+                          onClick={removeImage}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                          {selectedImage?.name}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          id="image-upload"
+                        />
+                        <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="text-center">
+                            <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Click to upload image
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              PNG, JPG, GIF up to 5MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Tabs>
+            </div>
+
+            <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4">
+              <Button onClick={handleSubmitReport} className="w-full">
+                {createLostFoundMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Report"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <div className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">All Items</TabsTrigger>
+            <TabsTrigger value="lost">Lost Items</TabsTrigger>
+            <TabsTrigger value="found">Found Items</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Items Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {filteredItems.length === 0 ? (
+          <div className="col-span-full">
+            <Card className="text-center py-12">
+              <CardContent>
+                <p className="text-muted-foreground">No items found.</p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          filteredItems.map((item) => (
+            <Card key={item._id} className="hover:shadow-md transition-shadow">
+              <CardHeader className={item.status === 'resolved' ? 'opacity-70' : ''}>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {item.title}
+                    {item.status === 'resolved' && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                        Resolved
+                      </span>
+                    )}
+                  </CardTitle>
+                  <Badge
+                    variant={item.type === "lost" ? "destructive" : "default"}
+                  >
+                    {item.type === "lost" ? "Lost" : "Found"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary">{item.category}</Badge>
+                  {item.status === 'expired' && (
+                    <Badge variant="secondary">
+                      Expired
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className={`space-y-3 ${item.status === 'resolved' ? 'opacity-70' : ''}`}>
+                {item.image && (
+                  <div className="w-full h-48 overflow-hidden rounded-lg">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
+
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {item.description}
+                </p>
+
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div className="flex items-center">
+                    <MapPin className="mr-1 h-3 w-3" />
+                    {item.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="mr-1 h-3 w-3" />
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </div>
+                  {item.status === 'resolved' && item.resolvedAt && (
+                    <div className="flex items-center text-green-600">
+                      <Calendar className="mr-1 h-3 w-3" />
+                      Resolved on {new Date(item.resolvedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                  <div>Reported by: {item.reportedByName}</div>
+                </div>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="w-full" disabled={item.status === 'resolved'}>
+                      {item.status === 'resolved' ? 'Resolved' : 'Contact Reporter'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Contact Information</DialogTitle>
+                      <DialogDescription>
+                        Reach out to the person who reported this {item.type === "lost" ? "lost" : "found"} item.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Item</h4>
+                        <p className="text-sm">{item.title}</p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Reported by</h4>
+                        <p className="text-sm">{item.reportedByName}</p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Email</h4>
+                        <p className="text-sm">
+                          <a 
+                            href={`mailto:${item.contactEmail}?subject=Regarding ${item.type === "lost" ? "lost" : "found"} item: ${item.title}`} 
+                            className="text-blue-600 hover:underline"
+                          >
+                            {item.contactEmail}
+                          </a>
+                        </p>
+                      </div>
+                      
+                      {item.contactPhone && (
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-medium">Phone</h4>
+                          <p className="text-sm">
+                            <a 
+                              href={`tel:${item.contactPhone}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {item.contactPhone}
+                            </a>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <DialogFooter className="flex-col space-y-2">
+                      {item.status === 'active' && user && (user._id === item.reportedBy._id || user.role === 'admin') && (
+                        <Button 
+                          type="button" 
+                          variant="default" 
+                          className="w-full"
+                          onClick={() => handleMarkResolved(item._id)}
+                        >
+                          Mark as Resolved
+                        </Button>
+                      )}
+                      <Button type="button" variant="secondary" className="w-full">
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollButton && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 rounded-full w-12 h-12 p-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-primary hover:bg-primary/90"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-6 w-6" />
+        </Button>
+      )}
+    </div>
+  );
+}
