@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       console.log('🔐 Attempting login for:', email);
-      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api');
+      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campuses-connect-backend.onrender.com/api');
       
       const response = await authAPI.login(email, password);
       console.log('✅ Login response received:', response.status);
@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       console.log('📝 Attempting signup for:', email, 'as', role);
-      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api');
+      console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL || 'https://campuses-connect-backend.onrender.com/api');
       
       // Use FormData for multipart/form-data when uploading files
       const formData = new FormData();

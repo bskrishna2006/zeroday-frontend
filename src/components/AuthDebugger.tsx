@@ -16,11 +16,11 @@ export const AuthDebugger: React.FC = () => {
     setResults('Testing backend connection...\n');
     
     const urls = [
-      'https://campues-connect-backend.onrender.com',
-      'https://campues-connect-backend.onrender.com/api',
-      'https://campues-connect-backend.onrender.com/api/auth/verify',
-      'https://campues-connect-backend.onrender.com/health',
-      'https://campues-connect-backend.onrender.com/status'
+      'https://campuses-connect-backend.onrender.com',
+      'https://campuses-connect-backend.onrender.com/api',
+      'https://campuses-connect-backend.onrender.com/api/auth/verify',
+      'https://campuses-connect-backend.onrender.com/health',
+      'https://campuses-connect-backend.onrender.com/status'
     ];
     
     for (const url of urls) {
@@ -131,7 +131,7 @@ export const AuthDebugger: React.FC = () => {
         
         <div className="text-sm text-gray-600">
           <p><strong>Environment:</strong> {import.meta.env.MODE}</p>
-          <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api'}</p>
+          <p><strong>API Base URL:</strong> {import.meta.env.VITE_API_BASE_URL || 'https://campuses-connect-backend.onrender.com/api'}</p>
         </div>
       </CardContent>
     </Card>

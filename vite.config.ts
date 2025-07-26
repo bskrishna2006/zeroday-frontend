@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://campues-connect-backend.onrender.com',
+        target: 'https://campuses-connect-backend.onrender.com',
         changeOrigin: true,
         secure: true,
       },

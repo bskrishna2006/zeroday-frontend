@@ -240,7 +240,7 @@ export default function SkillExchange() {
     const fetchTeachers = async () => {
       try {
         console.log("Fetching peer teachers data...");
-        const apiUrl = `${import.meta.env.VITE_API_BASE_URL || 'https://campues-connect-backend.onrender.com/api'}/skill-exchange/teachers`;
+        const apiUrl = `${import.meta.env.VITE_API_BASE_URL || 'https://campuses-connect-backend.onrender.com/api'}/skill-exchange/teachers`;
         console.log("API URL:", apiUrl);
         
         // Add token to ensure we're authenticated, which can help with data visibility
